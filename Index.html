@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Muntazir Naqvi ~ console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a1018;
+    --panel: #0e1620;
+    --panel-edge: #1c2a38;
+    --amber: #ffb454;
+    --amber-dim: #a97a3a;
+    --cyan: #5eeaD4;
+    --text: #c7d1db;
+    --text-dim: #647184;
+    --danger: #ff6b6b;
+    --good: #5eeaD4;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);}
+  body{
+    font-family:'JetBrains Mono', monospace;
+    color:var(--text);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+    padding:28px 16px 60px;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(94,234,212,0.05), transparent 60%),
+      var(--bg);
+  }
+
+  /* ---------- Status ticker ---------- */
+  .statusbar{
+    width:100%;
+    max-width:880px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:11px;
+    letter-spacing:0.04em;
+    color:var(--text-dim);
+    padding:0 6px 10px;
+    border-bottom:1px solid var(--panel-edge);
+    margin-bottom:18px;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .statusbar .dot{
+    display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:var(--good);margin-right:6px;
+    box-shadow:0 0 8px var(--good);
+    animation:pulse 2s infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .statusbar span.metric b{color:var(--amber);font-weight:500;}
+  .statusbar .metric{margin-right:14px;}
+
+  /* ---------- Console frame ---------- */
+  .console{
+    width:100%;
+    max-width:880px;
+    background:var(--panel);
+    border:1px solid var(--panel-edge);
+    border-radius:6px;
+    box-shadow:0 0 0 1px rgba(0,0,0,0.4), 0 30px 80px -30px rgba(0,0,0,0.7);
+    overflow:hidden;
+  }
+  .console-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:#0c1420;
+    border-bottom:1px solid var(--panel-edge);
+    padding:9px 14px;
+    font-size:12px;
+    color:var(--text-dim);
+  }
+  .console-head .tabs{display:flex;gap:2px;}
+  .console-head .tab{
+    padding:4px 12px;
+    font-size:11px;
+    border-radius:4px 4px 0 0;
+    color:var(--text-dim);
+  }
+  .console-head .tab.active{background:var(--panel);color:var(--amber);}
+  .console-head .path{color:var(--text-dim);}
+
+  .console-body{
+    padding:20px 22px 16px;
+    min-height:460px;
+    max-height:62vh;
+    overflow-y:auto;
+    font-size:14px;
+    line-height:1.65;
+  }
+  .console-body::-webkit-scrollbar{width:8px;}
+  .console-body::-webkit-scrollbar-thumb{background:var(--panel-edge);border-radius:4px;}
+
+  .line{white-space:pre-wrap;word-break:break-word;margin:0 0 2px;}
+  .prompt{color:var(--cyan);}
+  .prompt .user{color:var(--amber);}
+  .cmd-echo{color:var(--text);}
+  .out{color:var(--text);margin-bottom:10px;white-space:pre-wrap;}
+  .out .h{color:var(--amber);font-weight:700;display:block;margin-bottom:8px;}
+  .out .dim{color:var(--text-dim);}
+  .out .cyan{color:var(--cyan);}
+  .out a{color:var(--cyan);text-decoration:none;border-bottom:1px dotted var(--cyan);}
+  .out a:hover{color:var(--amber);border-color:var(--amber);}
+  .out .bad{color:var(--danger);}
+  .banner{color:var(--amber);font-size:12px;line-height:1.3;margin-bottom:14px;white-space:pre;}
+  ul.clean{margin:4px 0 10px 0;padding-left:18px;}
+  ul.clean li{margin-bottom:3px;}
+  .tag{
+    display:inline-block;
+    border:1px solid var(--panel-edge);
+    color:var(--cyan);
+    padding:1px 7px;
+    border-radius:3px;
+    font-size:12px;
+    margin:2px 4px 2px 0;
+  }
+  .job{margin-bottom:16px;}
+  .job-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    flex-wrap:wrap;
+    column-gap:16px;
+  }
+  .job-row .job-title{color:var(--cyan);}
+  .job-row .job-title b{color:var(--cyan);font-weight:700;}
+  .job-row .job-date{color:var(--text-dim);white-space:nowrap;}
+  .job-body{margin-top:2px;}
+  .cert-row{margin-bottom:4px;}
+  .help-row{display:flex;gap:14px;margin-bottom:3px;flex-wrap:wrap;}
+  .help-cmd{color:var(--cyan);min-width:118px;flex-shrink:0;}
+  .help-star{color:var(--amber);}
+
+  .input-row{
+    display:flex;
+    align-items:center;
+    border-top:1px solid var(--panel-edge);
+    padding:10px 22px;
+    gap:8px;
+  }
+  .input-row .prompt{white-space:nowrap;}
+  .input-row input{
+    flex:1;
+    background:transparent;
+    border:none;
+    outline:none;
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:14px;
+  }
+  .cursor{
+    display:inline-block;width:8px;height:16px;background:var(--amber);
+    animation:blink 1s step-end infinite;vertical-align:-3px;
+  }
+  @keyframes blink{50%{opacity:0;}}
+
+  .hint{
+    max-width:880px;width:100%;
+    font-size:11.5px;
+    color:var(--text-dim);
+    margin-top:12px;
+    padding:0 6px;
+  }
+  .hint .tag{cursor:pointer;}
+  .hint .tag:hover{border-color:var(--amber);color:var(--amber);}
+
+  @media (max-width:600px){
+    .console-body{font-size:13px;padding:16px;}
+    .statusbar{font-size:10px;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="statusbar">
+    <div><span class="dot"></span>SYSTEM STATUS: <b style="color:var(--good)">ONLINE</b></div>
+    <div>
+      <span class="metric">PATCH COMPLIANCE <b>98.4%</b></span>
+      <span class="metric">ENDPOINTS MANAGED <b>300+</b></span>
+      <span class="metric">UPTIME <b>3y 9m</b></span>
+    </div>
+  </div>
+
+  <div class="console">
+    <div class="console-head">
+      <div class="tabs">
+        <div class="tab active">rmm-console.exe</div>
+      </div>
+      <div class="path">Muntazir Naqvi:~$ session-01</div>
+    </div>
+    <div class="console-body" id="body"></div>
+    <div class="input-row">
+      <span class="prompt"><span class="user">Muntazir Naqvi</span>:~$</span>
+      <input id="cmd" type="text" autocomplete="off" spellcheck="false" autofocus />
+    </div>
+  </div>
+
+  <div class="hint">
+    try: <span class="tag" data-c="help">help</span><span class="tag" data-c="about">about</span><span class="tag" data-c="experience">experience</span><span class="tag" data-c="learned">learned</span><span class="tag" data-c="skill">skill</span><span class="tag" data-c="certification">certification</span><span class="tag" data-c="resume">resume</span><span class="tag" data-c="contact">contact</span>
+  </div>
+
+<script>
+const body = document.getElementById('body');
+const input = document.getElementById('cmd');
+
+const banner = `
+ __  __ _   _ _   _ _____  _    ____ ___ ____
+|  \\/  | | | | \\ | |_   _|/ \\  |__ /|_ _|  _ \\
+| |\\/| | | | |  \\| | | | / _ \\  |_ \\ | || |_) |
+| |  | | |_| | |\\  | | |/ ___ \\___) || ||  _ <
+|_|  |_|\\___/|_| \\_| |_/_/   \\_\\____/___|_| \\_\\
+`;
+
+const data = {
+  about: `<span class="h">ABOUT</span>
+Muntazir Naqvi — System Engineer, ProVal Technologies
+Sahibzada Ajit Singh Nagar, Punjab, India
+
+System Engineer specialising in MSP operations, automation,
+endpoint security, and infrastructure management. 3+ years
+supporting hundreds of client environments — designing
+automation, managing patch compliance, strengthening endpoint
+security, and delivering reliable IT operations.
+
+Prefers solving operational problems through automation and
+process improvement over repetitive manual work. Currently
+expanding from engineering into project ownership: leading
+automation initiatives, patch strategy, endpoint security, and
+client project delivery.
+
+Open to connecting with people in MSP / Automation / Endpoint
+Security / Cloud / Infrastructure / DevOps.`,
+
+  skills: `<span class="h">SKILLS</span>
+<span class="cyan">RMM & Automation</span>
+<span class="tag">ConnectWise Automate</span><span class="tag">ConnectWise RMM</span><span class="tag">ConnectWise Control</span><span class="tag">NinjaOne</span><span class="tag">Workflow Automation</span><span class="tag">API Integration</span>
+
+<span class="cyan">Scripting</span>
+<span class="tag">PowerShell</span><span class="tag">Batch</span><span class="tag">Bash</span>
+
+<span class="cyan">Endpoint Security</span>
+<span class="tag">ThreatLocker</span><span class="tag">SentinelOne</span><span class="tag">DNSFilter</span><span class="tag">Duo</span>
+
+<span class="cyan">Infrastructure</span>
+<span class="tag">Windows Server</span><span class="tag">Active Directory</span><span class="tag">DNS/DHCP</span><span class="tag">AWS Cloud</span><span class="tag">Linux (Ubuntu)</span>
+
+<span class="cyan">Ops & Docs</span>
+<span class="tag">Patch Management</span><span class="tag">ITGlue</span><span class="tag">Halo</span><span class="tag">SharePoint</span><span class="tag">Client Relationship Mgmt</span>`,
+
+  experience: `<span class="h">EXPERIENCE</span>
+<div class="job">
+  <div class="job-row"><span class="job-title"><b>ProVal Technologies Pvt Ltd</b> (System Engineer)</span><span class="job-date">Dec 2022 – Present · Noida</span></div>
+  <div class="job-body">Support multiple MSP partners: automation, endpoint management,
+  patch compliance, infrastructure, and project delivery. Manage CW
+  Automate / CW RMM / NinjaOne across client environments. Lead
+  patch approval, deployment & compliance reporting. Administer
+  ThreatLocker + SentinelOne, incl. app and website whitelisting.
+  Own onboarding/offboarding and endpoint lifecycle. Collaborate
+  with L3 engineers on automation initiatives; document via ITGlue.</div>
+</div>
+<div class="job">
+  <div class="job-row"><span class="job-title"><b>SankalpIT Services Pvt Ltd</b> (IT Administrator)</span><span class="job-date">Aug 2021 – Nov 2022 · Mohali</span></div>
+  <div class="job-body">Installed/maintained Windows Server, AD, DNS, DHCP. Managed
+  users, permissions & group policy. Routine server maintenance,
+  backups, disaster recovery planning, log monitoring.</div>
+</div>
+<div class="job">
+  <div class="job-row"><span class="job-title"><b>SachTech Solutions Pvt Ltd</b> (Trainee)</span><span class="job-date">Feb 2021 – Jul 2021 · Mohali</span></div>
+  <div class="job-body">Training in Networking & Cloud Computing — Linux (Ubuntu),
+  CCNA/CCNP-level networking, AWS cloud-hosted project work.</div>
+</div>
+<div class="job">
+  <div class="job-row"><span class="job-title"><b>Freelance</b> (Self)</span><span class="job-date">Apr 2018 – Jan 2021</span></div>
+  <div class="job-body">Adobe Photoshop, Illustrator, Blender, 3Ds Max.</div>
+</div>`,
+
+  education: `<span class="h">EDUCATION</span>
+Sri Guru Gobind Singh College, Sector-26, Chandigarh
+  Bachelor of Computer Applications (BCA)   <span class="dim">2016 – 2019</span>
+
+Ishwar Singh Dev Samaj Senior Secondary School
+  Non-Medical, High School   <span class="dim">2014 – 2016</span>
+
+Swami Ram Tirtha Public Sen-Sec School
+  Metric   <span class="dim">2001 – 2014</span>`,
+
+  certifications: `<span class="h">CERTIFICATIONS</span>
+<div class="cert-row">[✓] ConnectWise Automate Expert <span class="dim">— ConnectWise</span></div>
+<div class="cert-row">[✓] ConnectWise RMM Certification Expert <span class="dim">— ConnectWise</span></div>
+<div class="cert-row">[✓] NinjaOne <span class="dim">— NinjaOne</span></div>
+<div class="cert-row">[✓] AI Tool Essentials</div>
+<div class="cert-row">[✓] Cloud Computing & Networking <span class="dim">— SachTech Pvt Ltd</span></div>`,
+
+  languages: `<span class="h">LANGUAGES</span>
+  Hindi     — First language
+  English   — B2 (Upper Intermediate)
+  Urdu      — B2 (Upper Intermediate)
+  Punjabi   — B1 (Intermediate)`,
+
+  contact: `<span class="h">CONTACT</span>
+<div class="cert-row">email = muntazir786.mn@gmail.com</div>
+<div class="cert-row">mobile = +91 9855556958</div>
+<div class="cert-row">linkedin = <a href="https://www.linkedin.com/in/muntazirnaqvi-391796197" target="_blank">linkedin.com/in/muntazirnaqvi-391796197</a></div>
+<div class="cert-row">location = Shivaay Premium Homes, 424 Floor 2, Badala Road, Kharar, Punjab, India</div>
+
+  run <span class="cyan">social</span> for more links.`,
+
+  social: `<span class="h">SOCIAL / LINKS</span>
+  LinkedIn   <a href="https://www.linkedin.com/in/muntazirnaqvi-391796197" target="_blank">linkedin.com/in/muntazirnaqvi-391796197</a>
+  Email      <a href="mailto:muntazir786.mn@gmail.com">muntazir786.mn@gmail.com</a>`,
+
+  resume: `<span class="h">RESUME</span>
+  <a href="https://drive.google.com/uc?export=download&id=1_9mfoyeS5Vdr5L1gFKjjzBVYC9Vw8yRO" target="_blank">↓ download resume.pdf</a>
+  <a href="https://drive.google.com/file/d/1_9mfoyeS5Vdr5L1gFKjjzBVYC9Vw8yRO/preview" target="_blank">view in browser</a>
+
+  Full contents also loaded in this session — try:
+  <span class="cyan">experience</span>, <span class="cyan">skills</span>, <span class="cyan">education</span>, <span class="cyan">certifications</span>`,
+
+  whoami: `muntazir-naqvi :: system-engineer :: proval-technologies`,
+
+  companies: `<span class="h">COMPANIES</span>
+<div class="cert-row">ProVal Technologies Pvt Ltd — System Engineer <span class="dim">(Dec 2022 – Present)</span></div>
+<div class="cert-row">SankalpIT Services Pvt Ltd — IT Administrator <span class="dim">(Aug 2021 – Nov 2022)</span></div>
+<div class="cert-row">SachTech Solutions Pvt Ltd — Trainee <span class="dim">(Feb 2021 – Jul 2021)</span></div>
+<div class="cert-row">Freelance — Self <span class="dim">(Apr 2018 – Jan 2021)</span></div>
+
+  run <span class="cyan">experience</span> for full details on each.`,
+
+  learned: `<span class="h">WHAT I'VE LEARNED</span>
+Automation beats repetition — most operational headaches
+(patching, onboarding, deployments) get solved once, then
+scripted away for good.
+
+Endpoint security is a balance — whitelisting and lockdown
+policies have to protect without getting in the business's way.
+
+Documentation is what scales a team — clear ITGlue notes mean
+any engineer can pick up where another left off.
+
+Client trust is built in the small, unglamorous fixes as much
+as the big automation wins.
+
+Moving from "doing the ticket" to "owning the project" changes
+how you think about tools, timelines, and other people's time.`,
+};
+
+const order = ["about","skills","experience","education","certifications","languages","resume","contact","social"];
+
+function helpText(){
+  const rows = [
+    ["about", "Personal info & introduction"],
+    ["experience", "Work history & companies"],
+    ["education", "Educational background"],
+    ["skill", "Technical expertise & tools"],
+    ["certification", "Certifications held"],
+    ["learned", "What I've learned along the way"],
+    ["languages", "Language proficiency"],
+    ["contact", "Contact details & socials"],
+    ["resume", `<span class="help-star">⭐</span> Download my professional resume (PDF)`],
+    ["social", "LinkedIn & other links"],
+    ["whoami", "Show current user info"],
+    ["clear", "Clear screen (resets banner)"],
+    ["help", "Show this list"],
+  ];
+  const list = rows.map(([cmd, desc]) =>
+    `<div class="help-row"><span class="help-cmd">${cmd}</span><span>${desc}</span></div>`
+  ).join('');
+  return `<span class="h">📌 AVAILABLE COMMANDS</span>${list}`;
+}
+
+function print(html, cls){
+  const div = document.createElement('div');
+  div.className = cls || 'out';
+  div.innerHTML = html;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function printLine(text, cls){
+  const div = document.createElement('div');
+  div.className = cls || 'line';
+  div.textContent = text;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+}
+
+function run(raw){
+  const c = raw.trim().toLowerCase();
+  printLine(`Muntazir Naqvi:~$ ${raw}`, 'line cmd-echo');
+  if(!c) return;
+  if(c === 'clear'){ body.innerHTML = ''; return; }
+  if(c === 'help'){ print(helpText()); return; }
+  if(c === 'download resume' || c === 'cat resume.pdf' || c === 'resume.pdf'){ print(data.resume); return; }
+  const aliases = {
+    summary: 'about',
+    skill: 'skills',
+    certification: 'certifications',
+    "what i've learned": 'learned',
+    "what i learned": 'learned',
+    "whatilearned": 'learned'
+  };
+  const key = aliases[c] || c;
+  if(data[key]){ print(data[key]); return; }
+  if(c === 'sudo' || c.startsWith('sudo ')){
+    print(`<span class="bad">Nice try. This user doesn't need root — automation already handles it.</span>`);
+    return;
+  }
+  print(`<span class="bad">command not found:</span> ${c}. type <span class="cyan">help</span> for a list.`);
+}
+
+input.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){
+    const v = input.value;
+    input.value = '';
+    run(v);
+  }
+});
+
+document.querySelectorAll('.hint .tag').forEach(el=>{
+  el.addEventListener('click', ()=>{ input.value = el.dataset.c; input.focus(); run(el.dataset.c); input.value=''; });
+});
+
+document.addEventListener('click', ()=> input.focus());
+
+// boot sequence
+(function boot(){
+  print(`<span class="banner">${banner}</span>`);
+  print(`<span class="dim">System Engineer console — booted. Type </span><span class="cyan">help</span><span class="dim"> to begin.</span>`);
+})();
+</script>
+</body>
+</html>
